@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exam Pattern Predictor — Find Repeating Questions</title>
+  <meta name="description" content="Upload previous year question papers and instantly discover repeating questions, high-probability topics, and GATE pattern analysis." />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <!-- PDF generation -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #03050a;
+      --bg2: #090c15;
+      --bg3: rgba(13, 17, 30, 0.7);
+      --bg4: rgba(22, 28, 50, 0.95);
+      --border: rgba(255, 255, 255, 0.05);
+      --border-hover: rgba(108, 99, 255, 0.3);
+      --border2: rgba(255, 255, 255, 0.08);
+      --accent: #7c3aed;
+      --accent2: #a78bfa;
+      --accent-glow: rgba(124, 58, 237, 0.35);
+      --cyan: #06b6d4;
+      --cyan-dim: rgba(6, 182, 212, 0.12);
+      --green: #10b981;
+      --green-dim: rgba(16, 185, 129, 0.12);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59, 130, 246, 0.12);
+      --orange: #f59e0b;
+      --orange-dim: rgba(245, 158, 11, 0.12);
+      --red: #ef4444;
+      --red-dim: rgba(239, 68, 68, 0.12);
+      --text: #f3f4f6;
+      --text2: #9ca3af;
+      --text3: #6b7280;
+      --r: 16px;
+      --r2: 24px;
+      --r3: 32px;
+      --glass: blur(12px) saturate(180%);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg2);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(124, 58, 237, 0.3);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(124, 58, 237, 0.5);
+    }
+
+    /* ─── Animated Floating Background Orbs ─────────────────── */
+    .bg-orbs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.25;
+      animation: float 12s ease-in-out infinite;
+    }
+    .orb1 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, var(--accent), transparent);
+      top: -200px;
+      left: -150px;
+      animation-delay: 0s;
+    }
+    .orb2 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--cyan), transparent);
+      bottom: -150px;
+      right: -100px;
+      animation-delay: -6s;
+    }
+    .orb3 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, #ec4899, transparent);
+      top: 35%;
+      left: 55%;
+      animation-delay: -3s;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
+      50% { transform: translateY(-40px) scale(1.08) rotate(180deg); }
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 24px 100px;
+    }
+
+    /* ─── Hero section ──────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 90px 0 50px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.35);
+      border-radius: 999px;
+      padding: 8px 20px;
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--accent2);
+      letter-spacing: .05em;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.15);
+      animation: fadeDown .8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .hero-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(2.4rem, 7vw, 4.2rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #ffffff 20%, var(--accent2) 65%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      margin-bottom: 22px;
+      animation: fadeDown .8s cubic-bezier(0.16, 1, 0.3, 1) .1s both;
+    }
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--text2);
+      max-width: 620px;
+      margin: 0 auto;
+      line-height: 1.7;
+      animation: fadeDown .8s cubic-bezier(0.16, 1, 0.3, 1) .2s both;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(32px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* ─── Premium Glassmorphic Cards ────────────────────────── */
+    .glass-card {
+      background: var(--bg3);
+      backdrop-filter: var(--glass);
+      -webkit-backdrop-filter: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--r2);
+      padding: 36px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .glass-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 25px 60px rgba(124, 58, 237, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    /* How to card */
+    .how-to-card {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(124, 58, 237, 0.05));
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      border-radius: var(--r2);
+      padding: 24px;
+      margin: 32px 0;
+      animation: fadeDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+    }
+    .how-to-title {
+      font-size: .85rem;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .how-to-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+    }
+    .how-to-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(6, 182, 212, 0.18);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      color: var(--cyan);
+      font-size: .8rem;
+      font-weight: 800;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+    }
+    .step-text {
+      font-size: .85rem;
+      color: var(--text2);
+      line-height: 1.55;
+    }
+    .step-text strong {
+      color: var(--text);
+    }
+
+    /* ─── Upload form inputs ────────────────────────────────── */
+    .upload-card {
+      animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+    }
+    .upload-card h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .subject-input {
+      width: 100%;
+      padding: 16px 20px;
+      background: rgba(4, 6, 12, 0.8);
+      border: 1.5px solid var(--border2);
+      border-radius: var(--r);
+      color: var(--text);
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      margin-bottom: 20px;
+      transition: border-color .3s, box-shadow .3s;
+    }
+    .subject-input::placeholder {
+      color: var(--text3);
+    }
+    .subject-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.2);
+    }
+
+    /* Drop Zone */
+    .drop-zone {
+      border: 2px dashed var(--border2);
+      border-radius: var(--r);
+      padding: 56px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.3s, background-color 0.3s;
+      background: rgba(4, 6, 12, 0.5);
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(124, 58, 237, 0.04);
+    }
+    .drop-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .drop-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      display: block;
+      filter: drop-shadow(0 0 15px rgba(124, 58, 237, 0.4));
+      transition: transform 0.3s;
+    }
+    .drop-zone:hover .drop-icon {
+      transform: translateY(-5px);
+    }
+    .drop-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .drop-hint {
+      font-size: .85rem;
+      color: var(--text3);
+    }
+
+    /* Chips */
+    .file-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(124, 58, 237, 0.12);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 99px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--accent2);
+      animation: fadeIn 0.3s ease;
+    }
+    .chip-remove {
+      cursor: pointer;
+      opacity: .6;
+      font-size: 1rem;
+      transition: opacity .15s, color .15s;
+    }
+    .chip-remove:hover {
+      opacity: 1;
+      color: var(--red);
+    }
+
+    /* Action button */
+    .btn-analyse {
+      width: 100%;
+      margin-top: 24px;
+      padding: 18px;
+      border: none;
+      border-radius: var(--r);
+      background: linear-gradient(135deg, var(--accent), #6366f1);
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 25px rgba(124, 58, 237, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .btn-analyse:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 35px rgba(124, 58, 237, 0.5);
+    }
+    .btn-analyse:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    .btn-analyse:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ─── Loading animation steps ───────────────────────────── */
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 70px 24px;
+    }
+    .pulse-ring {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 4px solid var(--border2);
+      border-top-color: var(--accent);
+      animation: spin 1s cubic-bezier(0.55, 0.085, 0.68, 0.53) infinite;
+      margin: 0 auto 28px;
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.25);
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .loading-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 350px;
+      margin: 32px auto 0;
+      text-align: left;
+    }
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: .9rem;
+      color: var(--text3);
+      transition: color .3s;
+    }
+    .step.active {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .step-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border2);
+      flex-shrink: 0;
+      transition: background-color .3s, box-shadow .3s;
+    }
+    .step.active .step-dot {
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+    }
+    .step.done .step-dot {
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+    }
+    .step.done {
+      color: var(--green);
+    }
+
+    /* ─── Results section styling ───────────────────────────── */
+    #results {
+      display: none;
+      animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .results-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .results-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, var(--green), #059669);
+      color: #fff;
+      font-size: .9rem;
+      font-weight: 800;
+      font-family: inherit;
+      border: none;
+      border-radius: var(--r);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    .btn-download:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.45);
+    }
+    .btn-new {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: rgba(22, 28, 50, 0.6);
+      border: 1.5px solid var(--border2);
+      border-radius: var(--r);
+      color: var(--text);
+      font-size: .9rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-new:hover {
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+    .merged-banner {
+      background: var(--cyan-dim);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      border-radius: var(--r);
+      padding: 14px 20px;
+      margin-bottom: 24px;
+      font-size: .88rem;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+    }
+
+    /* Summary strip stats */
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-box {
+      background: rgba(13, 17, 30, 0.5);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 22px 18px;
+      text-align: center;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-box:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(124, 58, 237, 0.08);
+    }
+    .stat-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.3rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-label {
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    /* Interactive Search Filter Bar */
+    .search-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .search-input {
+      width: 100%;
+      padding: 14px 20px 14px 46px;
+      background: rgba(4, 6, 12, 0.8);
+      border: 1.5px solid var(--border2);
+      border-radius: var(--r);
+      color: var(--text);
+      font-size: .9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .3s, box-shadow .3s;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    }
+    .search-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      color: var(--text3);
+      pointer-events: none;
+    }
+
+    /* Tabs buttons */
+    .tabs-bar {
+      display: flex;
+      gap: 6px;
+      background: rgba(4, 6, 12, 0.6);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 6px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 11px 22px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text3);
+      font-size: .9rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.25s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      color: var(--text);
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn .4s ease;
+    }
+
+    .section-hd {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .section-hd h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    /* Question Cards styling */
+    .q-card {
+      background: rgba(13, 17, 30, 0.6);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 22px 24px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    }
+    .q-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px) translateX(2px);
+      box-shadow: 0 8px 30px rgba(124, 58, 237, 0.08);
+    }
+    .q-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .meta-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .q-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 14px;
+      border-radius: 99px;
+      font-size: .78rem;
+      font-weight: 800;
+    }
+    .q-count.high {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .q-count.medium {
+      background: var(--blue-dim);
+      color: var(--blue);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    .q-count.low {
+      background: rgba(156, 163, 175, 0.08);
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+    .q-years {
+      font-size: .8rem;
+      color: var(--text3);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .year-chip {
+      padding: 2px 10px;
+      background: rgba(124, 58, 237, 0.15);
+      border-radius: 99px;
+      color: var(--accent2);
+      font-weight: 700;
+      font-size: .75rem;
+    }
+    
+    /* Copy to clipboard button */
+    .btn-copy {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 4px 10px;
+      color: var(--text2);
+      font-size: .75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      border-color: var(--accent);
+      color: var(--accent2);
+      background: rgba(124, 58, 237, 0.08);
+    }
+
+    .q-text {
+      font-size: .95rem;
+      color: var(--text);
+      line-height: 1.7;
+      padding: 14px 18px;
+      background: rgba(4, 6, 12, 0.7);
+      border-radius: var(--r);
+      border-left: 4px solid var(--accent);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    /* Highlights in searches */
+    .highlight {
+      background: rgba(124, 58, 237, 0.35);
+      color: #fff;
+      padding: 0 2px;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+
+    /* Topic analysis listing */
+    .topic-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .topic-row {
+      background: rgba(13, 17, 30, 0.5);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: border-color .2s;
+    }
+    .topic-row:hover {
+      border-color: var(--border-hover);
+    }
+    .topic-rank {
+      font-size: .75rem;
+      font-weight: 800;
+      color: var(--text3);
+      min-width: 28px;
+      text-align: center;
+    }
+    .topic-info {
+      flex: 1;
+    }
+    .topic-name {
+      font-size: .95rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .topic-bar-track {
+      height: 8px;
+      background: rgba(4, 6, 12, 0.8);
+      border-radius: 99px;
+      overflow: hidden;
+      width: 100%;
+    }
+    .topic-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .topic-band {
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: .75rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    /* GATE view */
+    .gate-detected-banner {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(6, 182, 212, 0.1));
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: var(--r2);
+      padding: 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      box-shadow: 0 8px 30px rgba(124, 58, 237, 0.08);
+    }
+    .gate-topic-card {
+      background: rgba(13, 17, 30, 0.5);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 18px 22px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      transition: border-color .2s;
+    }
+    .gate-topic-card:hover {
+      border-color: var(--border-hover);
+    }
+    .gate-freq-badge {
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: .75rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .freq-vh { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.25); }
+    .freq-h { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(59, 130, 246, 0.25); }
+    .freq-m { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(245, 158, 11, 0.25); }
+    .gate-topic-name {
+      font-size: .95rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .gate-topic-tip {
+      font-size: .85rem;
+      color: var(--text2);
+      line-height: 1.55;
+    }
+    .gate-pattern {
+      background: rgba(4, 6, 12, 0.6);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 var(--r) var(--r) 0;
+      padding: 12px 18px;
+      margin-bottom: 10px;
+      font-size: .88rem;
+      color: var(--text2);
+      line-height: 1.6;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+    }
+    .gate-not-detected {
+      text-align: center;
+      padding: 56px 24px;
+      background: rgba(13, 17, 30, 0.5);
+      border: 1px solid var(--border);
+      border-radius: var(--r2);
+    }
+    .gate-subject-pill {
+      padding: 6px 16px;
+      border-radius: 99px;
+      border: 1px solid var(--border2);
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--text2);
+      background: rgba(22, 28, 50, 0.5);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .gate-subject-pill:hover {
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+
+    .empty {
+      text-align: center;
+      padding: 64px 24px;
+      color: var(--text3);
+    }
+    .empty .icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .paper-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      background: rgba(22, 28, 50, 0.5);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: .8rem;
+      color: var(--text2);
+      margin: 6px;
+    }
+
+    /* Toast */
+    .dl-toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--green);
+      color: #fff;
+      padding: 14px 26px;
+      border-radius: var(--r);
+      font-size: .9rem;
+      font-weight: 800;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+      display: none;
+      z-index: 999;
+      animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes toastIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    @media(max-width: 640px) {
+      .hero { padding: 60px 0 36px; }
+      .glass-card { padding: 24px 20px; }
+      .summary-strip { grid-template-columns: repeat(2, 1fr); }
+      .tab-btn { padding: 10px 14px; font-size: .8rem; }
+      .results-actions { width: 100%; }
+      .btn-download, .btn-new { flex: 1; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- Hero Section -->
+  <div class="hero">
+    <div class="hero-badge">⚡ AI-Powered PYQ Analyzer · Safe &amp; No DB</div>
+    <h1 class="hero-title">Predict Your Exam<br>Before It Happens</h1>
+    <p class="hero-sub">
+      Upload past papers and instantly find repeating questions, rank key topics,
+      cross-check the GATE syllabus, and export the analysis to PDF.
+    </p>
+  </div>
+
+  <!-- How-to Guide Card -->
+  <div class="how-to-card">
+    <div class="how-to-title">💡 How to get the best results</div>
+    <div class="how-to-steps">
+      <div class="how-to-step">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>Merge all past papers into one PDF</strong> using any free online tool (like <em>ilovepdf.com</em>). Upload it to analyze all years.</div>
+      </div>
+      <div class="how-to-step">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>Or upload multiple separate PDFs</strong>. Both methods work perfectly for year-by-year comparison.</div>
+      </div>
+      <div class="how-to-step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>Enter subject name</strong> (DBMS, OS, DSA...). If it is in the GATE syllabus, we'll suggest high-frequency GATE questions.</div>
+      </div>
+      <div class="how-to-step">
+        <div class="step-num">4</div>
+        <div class="step-text"><strong>Download the PDF report</strong> to share with your friends or print for self-revision.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload and Setup Card -->
+  <div id="upload-section">
+    <div class="glass-card upload-card">
+      <h2>📄 Upload PYQ papers</h2>
+
+      <input id="subject-input" class="subject-input" type="text"
+        placeholder="Subject name — e.g. DBMS, Operating Systems, DSA, Computer Networks..."
+        autocomplete="off" />
+
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".pdf" multiple />
+        <span class="drop-icon">📂</span>
+        <p class="drop-title">Drag &amp; drop PDF papers here</p>
+        <p class="drop-hint">Single merged PDF <strong>or</strong> separate PDFs · Max 20 MB each · Up to 10 files</p>
+      </div>
+
+      <div class="file-chips" id="file-chips"></div>
+      <div id="error-banner"></div>
+
+      <button class="btn-analyse" id="analyse-btn" onclick="startAnalysis()">
+        🔍 Analyse Papers
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading Animation Step Tracker -->
+  <div id="loading" class="glass-card">
+    <div class="pulse-ring"></div>
+    <h3 style="font-size: 1.3rem; margin-bottom: 8px; font-family: 'Outfit', sans-serif;">Analysing your papers...</h3>
+    <p style="color: var(--text2); font-size: .88rem">This takes about 10-30 seconds depending on size</p>
+    <div class="loading-steps">
+      <div class="step active" id="step1"><div class="step-dot"></div>Extracting text from PDFs</div>
+      <div class="step" id="step2"><div class="step-dot"></div>Detecting year sections</div>
+      <div class="step" id="step3"><div class="step-dot"></div>Identifying individual questions</div>
+      <div class="step" id="step4"><div class="step-dot"></div>Finding repeating questions</div>
+      <div class="step" id="step5"><div class="step-dot"></div>Analysing topics &amp; GATE patterns</div>
+    </div>
+  </div>
+
+  <!-- Results Dashboard -->
+  <div id="results">
+    <div class="results-header">
+      <div>
+        <h2 id="results-title" style="font-size: 1.6rem; font-weight: 800; font-family: 'Outfit', sans-serif;"></h2>
+        <div id="papers-list" style="margin-top: 6px"></div>
+      </div>
+      <div class="results-actions">
+        <button class="btn-download" id="dl-btn" onclick="downloadPDFReport()">
+          📥 Download PDF Report
+        </button>
+        <button class="btn-new" onclick="resetForm()">← New Analysis</button>
+      </div>
+    </div>
+
+    <!-- Split paper status notification -->
+    <div id="merged-banner" class="merged-banner" style="display: none">
+      🔀 <span id="merged-banner-text"></span>
+    </div>
+
+    <!-- Stat boxes strip -->
+    <div class="summary-strip" id="summary-strip"></div>
+
+    <!-- Active Tab switching list -->
+    <div class="tabs-bar">
+      <button class="tab-btn active" onclick="switchTab('repeating',this)">🔁 Repeating Questions</button>
+      <button class="tab-btn" onclick="switchTab('topics',this)">📊 Topics &amp; Probability</button>
+      <button class="tab-btn" onclick="switchTab('gate',this)">🎓 GATE Analysis</button>
+    </div>
+
+    <!-- Tab 1: Repeating Questions list -->
+    <div class="tab-panel active" id="tab-repeating">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="q-search" class="search-input" placeholder="Search repeating questions..." oninput="filterQuestions()" />
+      </div>
+      <div id="questions-list-container"></div>
+    </div>
+
+    <!-- Tab 2: Topics probability -->
+    <div class="tab-panel" id="tab-topics"></div>
+
+    <!-- Tab 3: GATE analysis -->
+    <div class="tab-panel" id="tab-gate"></div>
+  </div>
+</div>
+
+<!-- Download Toast -->
+<div class="dl-toast" id="dl-toast">✅ PDF report generated &amp; downloaded!</div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────────────
+let selectedFiles = [];
+let lastResult = null;
+let chartInstance = null;
+
+// ─── File handling ──────────────────────────────────────────────────────────
+const fileInput = document.getElementById('file-input');
+const dropZone  = document.getElementById('drop-zone');
+const fileChips = document.getElementById('file-chips');
+
+fileInput.addEventListener('change', () => addFiles(Array.from(fileInput.files)));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  addFiles(Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf'));
+});
+
+function addFiles(files) {
+  files.forEach(f => {
+    if (f.type !== 'application/pdf') return;
+    if (!selectedFiles.some(s => s.name === f.name && s.size === f.size)) selectedFiles.push(f);
+  });
+  renderChips();
+  fileInput.value = '';
+}
+function removeFile(i) { selectedFiles.splice(i, 1); renderChips(); }
+function renderChips() {
+  fileChips.innerHTML = selectedFiles.map((f, i) =>
+    `<div class="chip">📄 ${escHtml(f.name)}<span class="chip-remove" onclick="removeFile(${i})">✕</span></div>`
+  ).join('');
+}
+
+// ─── Analysis ───────────────────────────────────────────────────────────────
+async function startAnalysis() {
+  const subject = document.getElementById('subject-input').value.trim();
+  document.getElementById('error-banner').style.display = 'none';
+
+  if (!subject)               return showError('Please enter a subject name.');
+  if (!selectedFiles.length)  return showError('Please upload at least one PDF file.');
+
+  const fd = new FormData();
+  fd.append('subject', subject);
+  selectedFiles.forEach(f => fd.append('papers', f));
+
+  document.getElementById('upload-section').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+  animateSteps();
+
+  try {
+    const res  = await fetch('/analyse', { method: 'POST', body: fd });
+    const data = await res.json();
+    document.getElementById('loading').style.display = 'none';
+
+    if (!data.success) {
+      document.getElementById('upload-section').style.display = 'block';
+      return showError(data.error || 'Analysis failed. Please try again.');
+    }
+
+    lastResult = data;
+    renderResults(data);
+    document.getElementById('results').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('upload-section').style.display = 'block';
+    showError('Server error: ' + err.message + '. Make sure the server is running.');
+  }
+}
+
+function animateSteps() {
+  const ids = ['step1','step2','step3','step4','step5'];
+  const delays = [0, 1000, 2200, 3500, 5000];
+  ids.forEach((id, i) => {
+    setTimeout(() => {
+      if (i > 0) { const prev = document.getElementById(ids[i-1]); prev.classList.remove('active'); prev.classList.add('done'); }
+      document.getElementById(id).classList.add('active');
+    }, delays[i]);
+  });
+}
+
+// ─── Render Results ─────────────────────────────────────────────────────────
+function renderResults(data) {
+  const { subject, summary, papers, repeatingQuestions, topicAnalysis, highProbabilityTopics, gateAnalysis, isMergedMode } = data;
+
+  document.getElementById('results-title').textContent = `📊 ${subject} — Analysis`;
+
+  // Papers list
+  document.getElementById('papers-list').innerHTML =
+    papers.map(p => `<span class="paper-pill">📄 ${escHtml(p.filename)}${p.year && p.year !== '?' ? ' ('+p.year+')' : ''} · ${p.questionsFound}Q</span>`).join('');
+
+  // Merged mode banner
+  if (isMergedMode) {
+    document.getElementById('merged-banner').style.display = 'flex';
+    document.getElementById('merged-banner-text').textContent =
+      `Merged PDF detected — automatically split into ${summary.sectionsDetected} year sections and compared for repeating questions.`;
+  }
+
+  // Summary strip
+  document.getElementById('summary-strip').innerHTML = `
+    <div class="stat-box"><div class="stat-val" style="color:var(--accent)">${summary.sectionsDetected || summary.totalPapers}</div><div class="stat-label">Papers / Sections</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--blue)">${summary.totalQuestionsFound}</div><div class="stat-label">Questions Found</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--green)">${summary.repeatingQuestionsFound}</div><div class="stat-label">Repeating Questions</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--orange)">${summary.topicsDetected}</div><div class="stat-label">Topics Detected</div></div>
+  `;
+
+  // ── Tab: Repeating Questions ──────────────────────────────────────────────
+  renderQuestionsList(repeatingQuestions);
+
+  // ── Tab: Topics ───────────────────────────────────────────────────────────
+  const tabTopics = document.getElementById('tab-topics');
+  if (!topicAnalysis || topicAnalysis.length === 0) {
+    tabTopics.innerHTML = `<div class="empty"><span class="icon">📊</span><p>No topics detected. Try papers with more readable text.</p></div>`;
+  } else {
+    const maxCount = topicAnalysis[0].count;
+    const chartTopics = topicAnalysis.slice(0, 12);
+
+    tabTopics.innerHTML = `
+      ${highProbabilityTopics && highProbabilityTopics.length ? `
+        <div style="background:var(--green-dim);border:1px solid rgba(16, 185, 129, 0.25);border-radius:var(--r);padding:18px 22px;margin-bottom:24px">
+          <div style="font-size:.8rem;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">🔥 High Probability Topics — Study First</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">${highProbabilityTopics.map(t =>
+            `<span style="padding:6px 14px;border-radius:99px;background:rgba(16, 185, 129,0.15);color:var(--green);border:1px solid rgba(16, 185, 129,0.3);font-size:.8rem;font-weight:700">${t.topic}</span>`).join('')}</div>
+        </div>` : ''}
+      <div class="chart-box glass-card" style="margin-bottom:28px">
+        <div style="font-size:.85rem;font-weight:700;color:var(--text2);margin-bottom:18px">Topic Frequency chart</div>
+        <canvas id="topic-chart" height="280"></canvas>
+      </div>
+      <div class="section-hd"><h3>All Detected Topics</h3><span class="count-badge">${topicAnalysis.length}</span></div>
+      <div class="topic-grid">
+        ${topicAnalysis.map((t, i) => {
+          const pct = Math.round((t.count / maxCount) * 100);
+          return `<div class="topic-row">
+            <span class="topic-rank">#${i+1}</span>
+            <div class="topic-info">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                <span class="topic-name">${t.topic}</span>
+                <span style="font-size:.75rem;color:var(--text3)">${t.count} hits</span>
+              </div>
+              <div class="topic-bar-track"><div class="topic-bar-fill" style="width:${pct}%;background:${t.band_color}"></div></div>
+            </div>
+            <span class="topic-band" style="background:${t.band_color}20;color:${t.band_color};border:1px solid ${t.band_color}40">${t.band}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+
+    requestAnimationFrame(() => {
+      const ctx = document.getElementById('topic-chart');
+      if (!ctx) return;
+      if (chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: chartTopics.map(t => t.topic),
+          datasets: [{ label: 'Frequency', data: chartTopics.map(t => t.count),
+            backgroundColor: chartTopics.map(t => t.band_color + '99'),
+            borderColor: chartTopics.map(t => t.band_color),
+            borderWidth: 2, borderRadius: 8 }]
+        },
+        options: {
+          responsive: true, plugins: { legend: { display: false },
+            tooltip: { backgroundColor:'#0d111e', borderColor:'rgba(255,255,255,0.08)', borderWidth:1, titleColor:'#fff', bodyColor:'#9ca3af', padding:12 }
+          },
+          scales: {
+            x: { ticks:{ color:'#6b7280', font:{ size:11, family:"'Plus Jakarta Sans'" }, maxRotation:35 }, grid:{ color:'rgba(255,255,255,0.03)' } },
+            y: { ticks:{ color:'#6b7280', font:{ size:11, family:"'Plus Jakarta Sans'" } }, grid:{ color:'rgba(255,255,255,0.03)' }, beginAtZero:true }
+          }
+        }
+      });
+    });
+  }
+
+  // ── Tab: GATE ─────────────────────────────────────────────────────────────
+  const tabGate = document.getElementById('tab-gate');
+  if (gateAnalysis && gateAnalysis.detected) {
+    tabGate.innerHTML = `
+      <div class="gate-detected-banner">
+        <span style="font-size:2.5rem;flex-shrink:0">🎓</span>
+        <div>
+          <div style="font-size:1.1rem;font-weight:800;margin-bottom:4px;font-family:'Outfit',sans-serif">GATE Subject Detected: ${gateAnalysis.gate_subject}</div>
+          <div style="font-size:.85rem;color:var(--text2)">${gateAnalysis.message}</div>
+        </div>
+      </div>
+      <div class="section-hd"><h3>High-Frequency GATE Topics</h3></div>
+      <p style="font-size:.85rem;color:var(--text3);margin-bottom:16px">Based on GATE PYQ analysis — topics that appear most often in GATE CS examinations.</p>
+      ${gateAnalysis.high_frequency_topics.map(t => {
+        const fc = t.gate_frequency === 'Very High' ? 'freq-vh' : t.gate_frequency === 'High' ? 'freq-h' : 'freq-m';
+        return `<div class="gate-topic-card">
+          <span class="gate-freq-badge ${fc}">${t.gate_frequency}</span>
+          <div><div class="gate-topic-name">${t.topic}</div><div class="gate-topic-tip">💡 ${t.tip}</div></div>
+        </div>`;
+      }).join('')}
+      <div class="section-hd" style="margin-top:32px"><h3>Recurring GATE Question Patterns</h3></div>
+      <p style="font-size:.85rem;color:var(--text3);margin-bottom:14px">These question types repeat most often for this subject in GATE.</p>
+      ${gateAnalysis.gate_sample_patterns.map(p => `<div class="gate-pattern">→ ${escHtml(p)}</div>`).join('')}`;
+  } else {
+    const subs = ['OS','DBMS','CN / Networking','DSA / Algorithms','TOC / Automata','Compiler Design','COA','Discrete Math'];
+    tabGate.innerHTML = `
+      <div class="gate-not-detected">
+        <div style="font-size:3rem;margin-bottom:16px">🎓</div>
+        <p style="font-size:1.05rem;font-weight:700;margin-bottom:8px">${gateAnalysis?.message || 'Subject not mapped to GATE.'}</p>
+        <p style="margin-bottom:18px;font-size:.85rem;color:var(--text2)">Try one of these subject names for GATE analysis:</p>
+        <div class="gate-subjects-list">${subs.map(s => `<span class="gate-subject-pill">${s}</span>`).join('')}</div>
+      </div>`;
+  }
+}
+
+// ─── Render Questions List (with filter support) ───────────────────────────
+function renderQuestionsList(questions, filterQuery = '') {
+  const container = document.getElementById('questions-list-container');
+  if (!questions || questions.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <span class="icon">🔍</span>
+        <p style="font-weight:600;margin-bottom:6px">No repeating questions detected</p>
+        <p style="font-size:.82rem">Upload a merged PDF or more files (3+) for better cross-paper comparison.</p>
+      </div>`;
+    return;
+  }
+
+  // Filter list
+  const filtered = filterQuery 
+    ? questions.filter(q => q.question.toLowerCase().includes(filterQuery.toLowerCase()))
+    : questions;
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <span class="icon">❌</span>
+        <p style="font-weight:600;margin-bottom:6px">No questions match your search</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="section-hd">
+      <h3>Most Repeated Questions</h3>
+      <span class="count-badge">${filtered.length} found</span>
+    </div>
+    ${filtered.map((q, i) => {
+      const cls = q.count >= 3 ? 'high' : q.count === 2 ? 'medium' : 'low';
+      const yearsHtml = q.years.length ? q.years.map(y => `<span class="year-chip">${y}</span>`).join('') : '';
+      const displayTxt = highlightText(q.question, filterQuery);
+      return `
+        <div class="q-card glass-card">
+          <div class="q-meta">
+            <div class="meta-left">
+              <span class="q-count ${cls}">🔁 Appeared ${q.count}×</span>
+              ${yearsHtml ? `<span class="q-years">📅 ${yearsHtml}</span>` : ''}
+            </div>
+            <button class="btn-copy" onclick="copyToClipboard('${escJs(q.question)}', this)">📋 Copy</button>
+          </div>
+          <div class="q-text">${displayTxt}</div>
+        </div>`;
+    }).join('')}`;
+}
+
+function filterQuestions() {
+  const query = document.getElementById('q-search').value.trim();
+  if (lastResult && lastResult.repeatingQuestions) {
+    renderQuestionsList(lastResult.repeatingQuestions, query);
+  }
+}
+
+function highlightText(text, query) {
+  if (!query) return escHtml(text);
+  const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+  return escHtml(text).replace(regex, `<mark class="highlight">$1</mark>`);
+}
+
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const original = btn.innerHTML;
+    btn.innerHTML = '✅ Copied!';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }, 2000);
+  });
+}
+
+// ─── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ─── Download PDF Report ────────────────────────────────────────────────────
+function downloadPDFReport() {
+  if (!lastResult) return;
+  const btn = document.getElementById('dl-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating PDF...';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const { subject, summary, papers, repeatingQuestions, topicAnalysis, highProbabilityTopics, gateAnalysis, isMergedMode } = lastResult;
+
+    const W = doc.internal.pageSize.getWidth();   // 210
+    const M = 18;   // margin
+    const CW = W - 2 * M;
+    const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    // ── Accent / helper colours ──────────────────────────────────────────────
+    const C_ACCENT  = [124, 58, 237];
+    const C_GREEN   = [16, 185, 129];
+    const C_BLUE    = [59, 130, 246];
+    const C_ORANGE  = [245, 158, 11];
+    const C_RED     = [239, 68, 68];
+    const C_DARK    = [9, 12, 21];
+    const C_DARK2   = [22, 28, 50];
+    const C_LIGHT   = [243, 244, 246];
+    const C_MUTED   = [107, 114, 128];
+    const C_WHITE   = [255, 255, 255];
+
+    let y = 0; // current Y position
+    let page = 1;
+
+    function checkPageBreak(needed) {
+      if (y + needed > 272) { doc.addPage(); page++; y = 20; addPageFooter(); }
+    }
+
+    function addPageFooter() {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...C_MUTED);
+      doc.text(`Exam Pattern Predictor · ${subject} · Page ${page}`, W / 2, 290, { align: 'center' });
+      doc.setDrawColor(...C_ACCENT);
+      doc.setLineWidth(0.3);
+      doc.line(M, 285, W - M, 285);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PAGE 1 — COVER
+    // ════════════════════════════════════════════════════════════════
+    // Dark background
+    doc.setFillColor(...C_DARK);
+    doc.rect(0, 0, 210, 297, 'F');
+
+    // Accent top bar
+    doc.setFillColor(...C_ACCENT);
+    doc.rect(0, 0, 210, 5, 'F');
+
+    // Decorative circles
+    doc.setFillColor(124, 58, 237, 0.08);
+    doc.setDrawColor(124, 58, 237);
+    doc.setLineWidth(0.5);
+    doc.circle(170, 60, 50);
+    doc.circle(40, 220, 35);
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(32);
+    doc.setTextColor(...C_LIGHT);
+    doc.text('EXAM PATTERN', W / 2, 80, { align: 'center' });
+    doc.setTextColor(...C_ACCENT);
+    doc.text('ANALYSIS REPORT', W / 2, 95, { align: 'center' });
+
+    // Subject name
+    doc.setFontSize(18);
+    doc.setTextColor(...C_WHITE);
+    doc.text(subject, W / 2, 115, { align: 'center' });
+
+    // Divider
+    doc.setDrawColor(...C_ACCENT);
+    doc.setLineWidth(0.8);
+    doc.line(M + 20, 122, W - M - 20, 122);
+
+    // Date & info
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(...C_MUTED);
+    doc.text(`Generated: ${dateStr}`, W / 2, 132, { align: 'center' });
+    doc.text(isMergedMode ? `Merged PDF Mode · ${summary.sectionsDetected} year sections detected` : `${summary.totalPapers} PDF paper(s) analysed`, W / 2, 140, { align: 'center' });
+
+    // Stat boxes (4 in a row)
+    const bW = (CW - 12) / 4;
+    const stats = [
+      { label: 'Papers/Sections', val: summary.sectionsDetected || summary.totalPapers, color: C_ACCENT },
+      { label: 'Questions Found', val: summary.totalQuestionsFound, color: C_BLUE },
+      { label: 'Repeating',       val: summary.repeatingQuestionsFound, color: C_GREEN },
+      { label: 'Topics',          val: summary.topicsDetected, color: C_ORANGE },
+    ];
+    stats.forEach((s, i) => {
+      const bx = M + i * (bW + 4);
+      const by = 155;
+      doc.setFillColor(...C_DARK2);
+      doc.roundedRect(bx, by, bW, 28, 3, 3, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(...s.color);
+      doc.text(String(s.val), bx + bW / 2, by + 14, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...C_MUTED);
+      doc.text(s.label, bx + bW / 2, by + 23, { align: 'center' });
+    });
+
+    // Papers table
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...C_LIGHT);
+    doc.text('Papers Analysed', M, 200);
+
+    doc.autoTable({
+      startY: 204,
+      margin: { left: M, right: M },
+      head: [['Filename', 'Year', 'Questions Found']],
+      body: papers.map(p => [p.filename, p.year || '?', p.questionsFound]),
+      styles: { fillColor: C_DARK2, textColor: C_LIGHT, fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: C_ACCENT, textColor: C_WHITE, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [24, 28, 42] },
+      tableLineColor: [40, 46, 68],
+      tableLineWidth: 0.3,
+    });
+
+    addPageFooter();
+
+    // ════════════════════════════════════════════════════════════════
+    // PAGE 2 — REPEATING QUESTIONS
+    // ════════════════════════════════════════════════════════════════
+    doc.addPage(); page++; y = 20;
+
+    // Section header bar
+    doc.setFillColor(...C_ACCENT);
+    doc.rect(0, 0, 210, 14, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...C_WHITE);
+    doc.text('🔁  REPEATING QUESTIONS', M, 10);
+
+    y = 22;
+    addPageFooter();
+
+    if (!repeatingQuestions || repeatingQuestions.length === 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(10);
+      doc.setTextColor(...C_MUTED);
+      doc.text('No repeating questions detected. Upload more papers for better results.', M, y + 10);
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...C_MUTED);
+      const note = `${repeatingQuestions.length} question(s) found repeating across multiple papers. Sorted by frequency.`;
+      doc.text(note, M, y);
+      y += 8;
+
+      repeatingQuestions.forEach((q, idx) => {
+        const countColor = q.count >= 3 ? C_GREEN : q.count === 2 ? C_BLUE : C_MUTED;
+        const yearsLabel = q.years.length ? `Years: ${q.years.join(', ')}` : '';
+
+        checkPageBreak(40);
+
+        // Q number badge
+        doc.setFillColor(...C_DARK2);
+        doc.roundedRect(M, y, CW, 7, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...countColor);
+        doc.text(`Q${idx + 1}  Appeared ${q.count}×   ${yearsLabel}`, M + 3, y + 5);
+        y += 9;
+
+        // Question text (wrapped)
+        const qText = q.question.replace(/\s+/g, ' ').trim();
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(200, 210, 230);
+
+        const lines = doc.splitTextToSize(qText, CW - 6);
+        const blockH = lines.length * 5 + 8;
+        checkPageBreak(blockH + 6);
+
+        doc.setFillColor(18, 21, 32);
+        doc.setDrawColor(...C_ACCENT);
+        doc.setLineWidth(0.5);
+        doc.rect(M, y, 1.5, blockH, 'F');           // left accent bar
+        doc.setFillColor(18, 21, 32);
+        doc.rect(M + 1.5, y, CW - 1.5, blockH, 'F');
+        doc.setTextColor(200, 210, 230);
+        doc.text(lines, M + 5, y + 5);
+        y += blockH + 6;
+      });
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PAGE 3 — TOPIC ANALYSIS
+    // ════════════════════════════════════════════════════════════════
+    doc.addPage(); page++;
+
+    doc.setFillColor(...C_GREEN);
+    doc.rect(0, 0, 210, 14, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...C_WHITE);
+    doc.text('📊  TOPIC ANALYSIS & PROBABILITY', M, 10);
+
+    y = 22;
+    addPageFooter();
+
+    if (highProbabilityTopics && highProbabilityTopics.length) {
+      doc.setFillColor(20, 50, 35);
+      doc.roundedRect(M, y, CW, 8, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...C_GREEN);
+      doc.text('🔥 HIGH PRIORITY — Study these first:', M + 3, y + 5.5);
+      y += 10;
+
+      const pillText = highProbabilityTopics.map(t => t.topic).join('   ·   ');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(180, 240, 210);
+      const pLines = doc.splitTextToSize(pillText, CW - 6);
+      pLines.forEach(ln => { doc.text(ln, M + 3, y); y += 5.5; });
+      y += 4;
+    }
+
+    if (topicAnalysis && topicAnalysis.length) {
+      const bandColorMap = { 'Very High': C_GREEN, 'High': C_BLUE, 'Medium': C_ORANGE, 'Low': C_MUTED };
+      doc.autoTable({
+        startY: y,
+        margin: { left: M, right: M },
+        head: [['#', 'Topic', 'Frequency', 'Probability Band']],
+        body: topicAnalysis.map((t, i) => [i + 1, t.topic, t.count, t.band]),
+        styles: { fillColor: C_DARK2, textColor: C_LIGHT, fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: C_GREEN, textColor: C_WHITE, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [20, 24, 35] },
+        columnStyles: {
+          0: { cellWidth: 12 },
+          1: { cellWidth: 80 },
+          2: { cellWidth: 28, halign: 'center' },
+          3: { cellWidth: 40, halign: 'center' },
+        },
+        didParseCell(data) {
+          if (data.column.index === 3 && data.section === 'body') {
+            const band = data.cell.raw;
+            const c = bandColorMap[band] || C_MUTED;
+            data.cell.styles.textColor = c;
+            data.cell.styles.fontStyle = 'bold';
+          }
+        },
+        tableLineColor: [40, 46, 68],
+        tableLineWidth: 0.3,
+      });
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PAGE 4 — GATE ANALYSIS (if applicable)
+    // ════════════════════════════════════════════════════════════════
+    if (gateAnalysis && gateAnalysis.detected) {
+      doc.addPage(); page++;
+
+      doc.setFillColor(88, 78, 220);
+      doc.rect(0, 0, 210, 14, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(...C_WHITE);
+      doc.text('🎓  GATE ANALYSIS — ' + gateAnalysis.gate_subject.toUpperCase(), M, 10);
+
+      y = 22;
+      addPageFooter();
+
+      // GATE topics table
+      const freqColorMap = { 'Very High': C_GREEN, 'High': C_BLUE, 'Medium': C_ORANGE };
+      doc.autoTable({
+        startY: y,
+        margin: { left: M, right: M },
+        head: [['Topic', 'GATE Frequency', 'Study Tip']],
+        body: gateAnalysis.high_frequency_topics.map(t => [t.topic, t.gate_frequency, t.tip]),
+        styles: { fillColor: C_DARK2, textColor: C_LIGHT, fontSize: 8.5, cellPadding: 4 },
+        headStyles: { fillColor: [88, 78, 220], textColor: C_WHITE, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [20, 24, 35] },
+        columnStyles: {
+          0: { cellWidth: 70 },
+          1: { cellWidth: 28, halign: 'center' },
+          2: { cellWidth: 76 },
+        },
+        didParseCell(data) {
+          if (data.column.index === 1 && data.section === 'body') {
+            data.cell.styles.textColor = freqColorMap[data.cell.raw] || C_MUTED;
+            data.cell.styles.fontStyle = 'bold';
+          }
+        },
+        tableLineColor: [40, 46, 68],
+        tableLineWidth: 0.3,
+      });
+
+      y = doc.lastAutoTable.finalY + 12;
+      checkPageBreak(20);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...C_LIGHT);
+      doc.text('Recurring GATE Question Patterns', M, y);
+      y += 7;
+
+      gateAnalysis.gate_sample_patterns.forEach(p => {
+        const lines = doc.splitTextToSize('→  ' + p, CW - 4);
+        const bH = lines.length * 5 + 7;
+        checkPageBreak(bH + 4);
+        doc.setFillColor(18, 21, 32);
+        doc.setDrawColor(...C_ACCENT);
+        doc.setLineWidth(0.5);
+        doc.rect(M, y, 1.5, bH, 'F');
+        doc.rect(M + 1.5, y, CW - 1.5, bH, 'F');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(180, 200, 240);
+        doc.text(lines, M + 5, y + 5);
+        y += bH + 4;
+      });
+    }
+
+    // Save
+    const safeName = subject.replace(/[^a-zA-Z0-9]/g, '_');
+    doc.save(`${safeName}_ExamAnalysis_${new Date().toISOString().slice(0,10)}.pdf`);
+
+    // Toast
+    const toast = document.getElementById('dl-toast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  } catch (e) {
+    alert('PDF generation error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📥 Download PDF Report';
+  }
+}
+
+// ─── Reset ──────────────────────────────────────────────────────────────────
+function resetForm() {
+  selectedFiles = []; renderChips();
+  document.getElementById('subject-input').value = '';
+  document.getElementById('error-banner').style.display = 'none';
+  document.getElementById('merged-banner').style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('upload-section').style.display = 'block';
+  ['step1','step2','step3','step4','step5'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+    if (i === 0) el.classList.add('active');
+  });
+  lastResult = null;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function showError(msg) {
+  const b = document.getElementById('error-banner');
+  b.textContent = '⚠ ' + msg;
+  b.style.display = 'block';
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escJs(s) {
+  return String(s).replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+}
+</script>
+</body>
+</html>
