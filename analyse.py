@@ -376,13 +376,13 @@ def extract_questions(text):
             end = markers[i + 1] if i + 1 < len(markers) else len(text)
             chunk = re.sub(r'\s+', ' ', text[start:end]).strip()
             # Length filter: must be reasonably sized, and not a generic instruction
-            if 20 <= len(chunk) <= 2500:
+            if 20 <= len(chunk) <= 6000:  # raised from 2500 — allow full long questions
                 if not is_generic_instruction(chunk):
                     questions.append(chunk)
 
     # Fallback: extract sentences ending in ?
     if len(questions) < 3:
-        found = re.findall(r'[A-Z][^.!?]{15,250}\?', text, re.MULTILINE)
+        found = re.findall(r'[A-Z][^.!?]{15,800}\?', text, re.MULTILINE)  # raised cap: 250→800
         for q in found:
             q = re.sub(r'\s+', ' ', q).strip()
             if q not in questions and not is_generic_instruction(q):
@@ -607,10 +607,10 @@ def analyse(config):
     ])
 
     repeating_output = []
-    for g in repeating_groups[:25]:
+    for g in repeating_groups[:50]:  # increased from 25 → 50
         years = sorted(set(a["year"] for a in g["appearances"] if a["year"] not in ("?", "merged", "unknown")))
         repeating_output.append({
-            "question": g["question"][:600],
+            "question": g["question"],  # full text — truncation removed
             "count": len(g["appearances"]),
             "years": years,
             "filenames": list(set(a["filename"] for a in g["appearances"])),

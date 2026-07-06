@@ -898,6 +898,50 @@
       color: var(--accent2);
     }
 
+    /* q-text collapsible */
+    .q-text {
+      font-size: .92rem;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .q-text-preview {
+      font-size: .92rem;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      /* clamped view */
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .q-text-full {
+      font-size: .92rem;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .btn-read-more {
+      margin-top: 8px;
+      background: none;
+      border: 1px solid rgba(124,58,237,0.4);
+      border-radius: 8px;
+      padding: 5px 14px;
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--accent2);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-read-more:hover {
+      background: rgba(124,58,237,0.12);
+      border-color: var(--accent);
+    }
+
     .empty {
       text-align: center;
       padding: 64px 24px;
@@ -1294,6 +1338,10 @@ function renderResults(data) {
 }
 
 // ─── Render Questions List (with filter support) ───────────────────────────
+// We store full question texts in a module-level map keyed by index so that
+// copy and toggle operations never touch potentially-huge inline HTML attributes.
+let _questionStore = [];
+
 function renderQuestionsList(questions, filterQuery = '') {
   const container = document.getElementById('questions-list-container');
   if (!questions || questions.length === 0) {
@@ -1320,6 +1368,11 @@ function renderQuestionsList(questions, filterQuery = '') {
     return;
   }
 
+  // Persist full texts so copy/toggle can look them up safely by index
+  _questionStore = filtered.map(q => q.question);
+
+  const PREVIEW_THRESHOLD = 300; // chars — show Read More toggle above this
+
   container.innerHTML = `
     <div class="section-hd">
       <h3>Most Repeated Questions</h3>
@@ -1328,7 +1381,12 @@ function renderQuestionsList(questions, filterQuery = '') {
     ${filtered.map((q, i) => {
       const cls = q.count >= 3 ? 'high' : q.count === 2 ? 'medium' : 'low';
       const yearsHtml = q.years.length ? q.years.map(y => `<span class="year-chip">${y}</span>`).join('') : '';
-      const displayTxt = highlightText(q.question, filterQuery);
+      const fullText = q.question;
+      const isLong = fullText.length > PREVIEW_THRESHOLD;
+
+      // Highlighted text (applied to full text; the preview clamp is CSS-only)
+      const highlightedText = highlightText(fullText, filterQuery);
+
       return `
         <div class="q-card glass-card">
           <div class="q-meta">
@@ -1336,9 +1394,15 @@ function renderQuestionsList(questions, filterQuery = '') {
               <span class="q-count ${cls}">🔁 Appeared ${q.count}×</span>
               ${yearsHtml ? `<span class="q-years">📅 ${yearsHtml}</span>` : ''}
             </div>
-            <button class="btn-copy" onclick="copyToClipboard('${escJs(q.question)}', this)">📋 Copy</button>
+            <button class="btn-copy" data-qidx="${i}" onclick="copyByIndex(this)">📋 Copy</button>
           </div>
-          <div class="q-text">${displayTxt}</div>
+          ${isLong ? `
+            <div class="q-text-preview" id="q-preview-${i}">${highlightedText}</div>
+            <div class="q-text-full" id="q-full-${i}" style="display:none">${highlightedText}</div>
+            <button class="btn-read-more" id="q-toggle-${i}" onclick="toggleQuestion(${i})">▼ Read full question</button>
+          ` : `
+            <div class="q-text">${highlightedText}</div>
+          `}
         </div>`;
     }).join('')}`;
 }
@@ -1358,6 +1422,43 @@ function highlightText(text, query) {
 
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ─── Toggle full/preview question text ─────────────────────────────────────
+function toggleQuestion(idx) {
+  const preview = document.getElementById(`q-preview-${idx}`);
+  const full    = document.getElementById(`q-full-${idx}`);
+  const btn     = document.getElementById(`q-toggle-${idx}`);
+  if (!preview || !full || !btn) return;
+  const isExpanded = full.style.display !== 'none';
+  if (isExpanded) {
+    // Collapse
+    full.style.display    = 'none';
+    preview.style.display = '';
+    btn.textContent = '▼ Read full question';
+  } else {
+    // Expand
+    preview.style.display = 'none';
+    full.style.display    = '';
+    btn.textContent = '▲ Collapse';
+  }
+}
+
+// ─── Copy by data-index (safe for long text) ─────────────────────────────────
+function copyByIndex(btn) {
+  const idx = parseInt(btn.getAttribute('data-qidx'), 10);
+  const text = _questionStore[idx] || '';
+  navigator.clipboard.writeText(text).then(() => {
+    const original = btn.innerHTML;
+    btn.innerHTML = '✅ Copied!';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }, 2000);
+  });
 }
 
 function copyToClipboard(text, btn) {
