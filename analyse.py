@@ -338,15 +338,18 @@ def split_merged_pdf_by_year(pdf_path):
 
 
 # ─── Question Extraction ──────────────────────────────────────────────────────
-
-# Modified patterns: only split on major question headings and top-level subparts (a-h)
-# Avoid splitting on (i), (ii), (iii) or (1), (2), (3) inside a parent question
+#
+# IMPORTANT: Only split on TOP-LEVEL question markers.
+# Do NOT include sub-part patterns like (a), (b), (c), Part A, Part B etc.
+# Sub-parts must stay INSIDE their parent question block so the full question
+# is extracted as one unit — not as separate tiny fragments.
 QUESTION_START_PATTERNS = [
-    re.compile(r'(?:^|\n)\s*Q\.?\s*\d+[\.\)\s]', re.MULTILINE),
-    re.compile(r'(?:^|\n)\s*\d{1,2}\.\s+[A-Z]', re.MULTILINE),
-    re.compile(r'(?:^|\n)\s*[\(\[]\s*([a-hA-H])\s*[\)\]]', re.MULTILINE), # Only letters a-h representing subparts
+    # Q.1, Q1., Q1), Q 2 — any variant of "Q" followed by a number
+    re.compile(r'(?:^|\n)\s*Q\.?\s*\d+[\.)\s]', re.MULTILINE),
+    # 1. Explain..., 2. What is... — numbered question starting with capital letter
+    re.compile(r'(?:^|\n)\s*\d{1,2}\.\s+[A-Z][a-z]', re.MULTILINE),
+    # Question 1, Question No. 2
     re.compile(r'(?:^|\n)\s*[Qq]uestion(?:\s+[Nn]o\.?)?\s*\d+', re.MULTILINE),
-    re.compile(r'(?:^|\n)\s*[Pp]art\s*[\(\[]?\s*[a-zA-Z]', re.MULTILINE),
 ]
 
 def is_generic_instruction(text):
@@ -382,25 +385,24 @@ def extract_questions(text):
         for i, start in enumerate(markers):
             end = markers[i + 1] if i + 1 < len(markers) else len(text)
             chunk = re.sub(r'\s+', ' ', text[start:end]).strip()
-            # Length filter: must be reasonably sized, and not a generic instruction
-            if 20 <= len(chunk) <= 6000:  # raised from 2500 — allow full long questions
+            # Must be a reasonable full question (at least 40 chars to avoid orphaned sub-parts)
+            if 40 <= len(chunk) <= 8000:
                 if not is_generic_instruction(chunk):
                     questions.append(chunk)
 
     # Fallback: extract sentences ending in ?
     if len(questions) < 3:
-        found = re.findall(r'[A-Z][^.!?]{15,800}\?', text, re.MULTILINE)  # raised cap: 250→800
+        found = re.findall(r'[A-Z][^.!?]{20,800}\?', text, re.MULTILINE)  # min 20 chars
         for q in found:
             q = re.sub(r'\s+', ' ', q).strip()
             if q not in questions and not is_generic_instruction(q):
                 questions.append(q)
 
-    # Deduplicate
+    # Deduplicate — relax sequence_similarity to 0.85 (full blocks may differ slightly in formatting)
     seen = []
     unique = []
     for q in questions:
-        # Pre-check similarity to avoid slow SequenceMatcher on different strings
-        if not any(similarity(q, s) >= 0.40 and sequence_similarity(q, s) > 0.9 for s in seen):
+        if not any(similarity(q, s) >= 0.45 and sequence_similarity(q, s) > 0.85 for s in seen):
             seen.append(q)
             unique.append(q)
     return unique
@@ -504,7 +506,8 @@ def find_repeating_questions(papers):
             if item["filename"] == other["filename"]:
                 continue
             sim = similarity(item["q"], other["q"])
-            if sim >= 0.55 or (sim >= 0.30 and sequence_similarity(item["q"], other["q"]) >= 0.70):
+            # Full question blocks are longer → naturally lower Jaccard. Lower thresholds accordingly.
+            if sim >= 0.45 or (sim >= 0.25 and sequence_similarity(item["q"], other["q"]) >= 0.65):
                 already = any(a["filename"] == other["filename"] for a in group["appearances"])
                 if not already:
                     group["appearances"].append({"filename": other["filename"], "year": other["year"]})
