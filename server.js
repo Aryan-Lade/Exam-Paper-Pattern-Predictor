@@ -116,6 +116,11 @@ app.post('/analyse', upload.array('papers', 10), (req, res) => {
       maxBuffer: 10 * 1024 * 1024,   // 10 MB
       shell:     false,               // ← DO NOT use cmd.exe
       cwd:       __dirname,
+      env: {
+        ...process.env,
+        PYTHONIOENCODING: 'utf-8',    // force UTF-8 stdout (fixes charmap error on Windows)
+        PYTHONUTF8: '1',              // Python 3.7+ UTF-8 mode
+      },
     });
 
     // Timeout / spawn error

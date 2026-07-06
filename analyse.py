@@ -12,6 +12,13 @@ Supports:
 """
 
 import sys
+import io
+
+# ── Force UTF-8 stdout on Windows (charmap can't encode Greek/math symbols) ──
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+else:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 import json
 import re
 import os
@@ -670,7 +677,9 @@ if __name__ == "__main__":
         with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
         result = analyse(config)
-        print(json.dumps(result, ensure_ascii=False))
+        # Write JSON as UTF-8 bytes to stdout.buffer to guarantee encoding
+        out = json.dumps(result, ensure_ascii=False)
+        sys.stdout.write(out + '\n')
     except Exception as e:
         print(json.dumps({"success": False, "error": str(e)}))
         sys.exit(1)
