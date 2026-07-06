@@ -69,17 +69,26 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 20 * 1024 * 1024, files: 10 },
+  limits: { fileSize: 20 * 1024 * 1024, files: 11 }, // 10 papers + 1 syllabus
 });
+
+// Multer field config: 'papers' (up to 10) + optional 'syllabus' (1)
+const uploadFields = upload.fields([
+  { name: 'papers',   maxCount: 10 },
+  { name: 'syllabus', maxCount: 1  },
+]);
 
 // ─── Serve frontend ───────────────────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Analysis endpoint ────────────────────────────────────────────────────────
-app.post('/analyse', upload.array('papers', 10), (req, res) => {
-  const uploadedFiles = req.files || [];
+// ─── Analysis endpoint ────────────────────────────────────────────────────
+app.post('/analyse', uploadFields, (req, res) => {
+  const uploadedFiles = (req.files && req.files['papers']) || [];
+  const syllabusFiles = (req.files && req.files['syllabus']) || [];
+  const syllabusPath  = syllabusFiles.length ? syllabusFiles[0].path : null;
   const subject       = (req.body.subject || 'Unknown Subject').trim();
   let   configPath    = null;
+  const allUploaded   = [...uploadedFiles, ...syllabusFiles]; // for cleanup
 
   try {
     if (!PYTHON_CMD) {
@@ -99,13 +108,13 @@ app.post('/analyse', upload.array('papers', 10), (req, res) => {
     const config = {
       pdfs: uploadedFiles.map((f) => f.path),
       subject,
+      syllabus: syllabusPath || null,   // optional syllabus path
     };
     configPath = path.join(os.tmpdir(), `exam_cfg_${Date.now()}.json`);
     fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
 
     const scriptPath = path.join(__dirname, 'analyse.py');
-
-    console.log(`[Analyse] subject="${subject}" pdfs=${uploadedFiles.length} script="${scriptPath}"`);
+    console.log(`[Analyse] subject="${subject}" pdfs=${uploadedFiles.length} syllabus=${syllabusPath ? 'yes' : 'none'} script="${scriptPath}"`);
 
     // ── KEY FIX: spawnSync with shell:false ────────────────────────────────
     // Bypasses cmd.exe entirely — no ETIMEDOUT from Windows shell spawning.
@@ -180,8 +189,8 @@ app.post('/analyse', upload.array('papers', 10), (req, res) => {
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   } finally {
-    // Always clean up uploaded PDFs and config file
-    uploadedFiles.forEach((f) => { try { fs.unlinkSync(f.path); } catch {} });
+    // Always clean up ALL uploaded files (papers + syllabus) and config file
+    allUploaded.forEach((f) => { try { fs.unlinkSync(f.path); } catch {} });
     if (configPath) { try { fs.unlinkSync(configPath); } catch {} }
   }
 });

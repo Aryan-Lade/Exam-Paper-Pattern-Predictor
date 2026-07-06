@@ -524,11 +524,26 @@ def find_repeating_questions(papers):
 # ─── Main Analysis ────────────────────────────────────────────────────────────
 
 def analyse(config):
-    pdf_paths = config["pdfs"]
+    pdf_paths    = config["pdfs"]
     subject_name = config.get("subject", "Unknown Subject")
+    syllabus_path = config.get("syllabus", None)  # optional syllabus PDF
 
     if not pdf_paths:
         raise ValueError("No PDF files provided")
+
+    # ── Extract syllabus text (if provided) ───────────────────────────────────
+    syllabus_text = ""
+    syllabus_topics = set()    # topic names that appear in the syllabus
+    if syllabus_path and os.path.exists(syllabus_path):
+        try:
+            syllabus_text = extract_text_from_pdf(syllabus_path)
+            # Find which topics from TOPIC_KEYWORDS appear in the syllabus
+            syl_lower = syllabus_text.lower()
+            for topic, keywords in TOPIC_KEYWORDS.items():
+                if any(kw in syl_lower for kw in keywords):
+                    syllabus_topics.add(topic)
+        except Exception:
+            syllabus_text = ""  # silently ignore syllabus errors
 
     papers = []
     all_combined_text = ""
@@ -607,7 +622,8 @@ def analyse(config):
             band, band_color = "Medium", "#f59e0b"
         else:
             band, band_color = "Low", "#64748b"
-        top_topics.append({"topic": t, "count": c, "band": band, "band_color": band_color})
+        in_syl = (t in syllabus_topics) if syllabus_topics else None  # None means no syllabus uploaded
+        top_topics.append({"topic": t, "count": c, "band": band, "band_color": band_color, "inSyllabus": in_syl})
 
     # ── Repeating questions ───────────────────────────────────────────────────
     valid_papers = [p for p in papers if "error" not in p]
@@ -619,11 +635,15 @@ def analyse(config):
     repeating_output = []
     for g in repeating_groups[:50]:  # increased from 25 → 50
         years = sorted(set(a["year"] for a in g["appearances"] if a["year"] not in ("?", "merged", "unknown")))
+        # Check if this question's topics overlap with syllabus
+        q_topics = detect_topics(g["question"])
+        in_syl = bool(syllabus_topics and q_topics and any(t in syllabus_topics for t in q_topics))
         repeating_output.append({
             "question": g["question"],  # full text — truncation removed
             "count": len(g["appearances"]),
             "years": years,
             "filenames": list(set(a["filename"] for a in g["appearances"])),
+            "syllabusRelevant": in_syl if syllabus_topics else None,
         })
 
     # ── GATE analysis ─────────────────────────────────────────────────────────
@@ -645,10 +665,25 @@ def analyse(config):
 
     total_questions = sum(p.get("question_count", 0) for p in valid_papers)
 
+    # ── Syllabus analysis summary ─────────────────────────────────────────────
+    syllabus_analysis = None
+    if syllabus_path and syllabus_text:
+        syllabus_analysis = {
+            "uploaded": True,
+            "syllabusTopics": sorted(syllabus_topics),
+            "topicsInSyllabus": len(syllabus_topics),
+            "repeatingInSyllabus": sum(1 for r in repeating_output if r.get("syllabusRelevant")),
+        }
+    elif syllabus_path:
+        syllabus_analysis = {"uploaded": True, "error": "Could not read syllabus PDF"}
+    else:
+        syllabus_analysis = {"uploaded": False}
+
     return {
         "success": True,
         "subject": subject_name,
         "isMergedMode": is_merged_mode,
+        "syllabusAnalysis": syllabus_analysis,
         "summary": {
             "totalPapers": len(pdf_paths),
             "sectionsDetected": len(papers),
